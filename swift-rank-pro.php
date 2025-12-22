@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: Swift Rank Pro
- * Plugin URI: https://swiftrank.com
+ * Plugin URI: https://toolpress.net/swift-rank
  * Description: Premium features for Swift Rank.
  * Version: 1.0.0
- * Author: Rakesh Lawaju
- * Author URI: https://swiftrank.com
+ * Author: ToolPress
+ * Author URI: https://toolpress.net
  * License: GPLv2 or later
  * Requires Plugins: swift-rank
  * Text Domain: swift-rank-pro
@@ -37,7 +37,8 @@ if (!function_exists('swift_rank_pro_fs')) {
 
 			$swift_rank_pro_fs = fs_dynamic_init(array(
 				'id' => '22065',
-				'slug' => 'swift-rank-pro',
+				'slug' => 'swift-rank',
+				'premium_slug' => 'swift-rank-pro',
 				'type' => 'plugin',
 				'public_key' => 'pk_0fe47c9861fffbe19397465f2b465',
 				'is_premium' => true,
