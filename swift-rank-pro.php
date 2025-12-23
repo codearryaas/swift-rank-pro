@@ -3,7 +3,7 @@
  * Plugin Name: Swift Rank Pro
  * Plugin URI: https://toolpress.net/swift-rank
  * Description: Premium features for Swift Rank.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: ToolPress
  * Author URI: https://toolpress.net
  * License: GPLv2 or later
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define constants.
-define('SWIFT_RANK_PRO_VERSION', '1.0.0');
+define('SWIFT_RANK_PRO_VERSION', '1.0.1');
 define('SWIFT_RANK_PRO_FILE', __FILE__);
 define('SWIFT_RANK_PRO_PATH', plugin_dir_path(__FILE__));
 define('SWIFT_RANK_PRO_PLUGIN_DIR', plugin_dir_path(__FILE__));
