@@ -1,10 +1,10 @@
 === Swift Rank Pro ===
 Contributors: racase
 Tags: schema, structured data, seo, json-ld, rich snippets
-Requires at least: 5.0
+Requires at least: 5.9
 Tested up to: 6.9
-Requires PHP: 7.0
-Stable tag: 1.0.0
+Requires PHP: 7.4
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,7 +16,7 @@ Swift Rank helps you add professional Schema.org structured data to your WordPre
 
 = Key Features =
 
-* **Schema Templates** - Create reusable schema templates with conditional display rules
+* **[Schema Templates](https://toolpress.net/documentation/how-to-add-schema-templates-in-swift-rank/)** - Create reusable schema templates with conditional display rules
 * **Multiple Schema Types** - Article, BlogPosting, NewsArticle, Event, FAQPage, HowTo, and more
 * **JSON-LD Format** - Uses Google's recommended JSON-LD structured data format
 * **Dynamic Variables System** - Insert WordPress data dynamically into schema fields
