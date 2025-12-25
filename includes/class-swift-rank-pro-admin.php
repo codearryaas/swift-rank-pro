@@ -177,18 +177,15 @@ class Swift_Rank_Pro_Admin
 			return;
 		}
 
-		// Load Pro schema builders
-		require_once SWIFT_RANK_PRO_PATH . 'includes/output/types/class-podcast-episode-schema.php';
-		require_once SWIFT_RANK_PRO_PATH . 'includes/output/types/class-recipe-schema.php';
-		require_once SWIFT_RANK_PRO_PATH . 'includes/output/types/class-custom-schema.php';
-
 		// Get the output handler instance
 		$output_handler = Schema_Output_Handler::get_instance();
 
 		// Register Pro schema builders
-		$output_handler->register_builder('PodcastEpisode', new Schema_Podcast_Episode());
-		$output_handler->register_builder('Recipe', new Schema_Recipe());
-		$output_handler->register_builder('Custom', new Schema_Custom());
+		$builders = Swift_Rank_Pro_Schema_Helper::get_pro_schema_builders();
+
+		foreach ($builders as $type => $builder) {
+			$output_handler->register_builder($type, $builder);
+		}
 	}
 
 	/**

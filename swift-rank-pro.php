@@ -163,6 +163,7 @@ class Swift_Rank_Pro
 		require_once SWIFT_RANK_PRO_PATH . 'includes/class-swift-rank-pro-admin.php';
 
 		// Register Pro schema types
+		require_once SWIFT_RANK_PRO_PATH . 'includes/class-swift-rank-pro-schema-helper.php';
 		require_once SWIFT_RANK_PRO_PATH . 'includes/schema-types-registration.php';
 
 

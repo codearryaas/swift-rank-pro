@@ -25,24 +25,8 @@ function swift_rank_pro_register_types($types)
         return $types;
     }
 
-    $types_dir = SWIFT_RANK_PRO_PLUGIN_DIR . 'includes/output/types/';
-
-    // Manually load Pro schema type builders
-    require_once $types_dir . 'class-recipe-schema.php';
-    require_once $types_dir . 'class-podcast-episode-schema.php';
-    require_once $types_dir . 'class-event-schema.php';
-    require_once $types_dir . 'class-howto-schema.php';
-    require_once $types_dir . 'class-custom-schema.php';
-    require_once $types_dir . 'class-custom-schema.php';
-
     // Register Pro schema types
-    $pro_builders = array(
-        'Recipe' => new Schema_Recipe(),
-        'PodcastEpisode' => new Schema_Podcast_Episode(),
-        'Event' => new Schema_Event(),
-        'HowTo' => new Schema_Howto(),
-        'Custom' => new Schema_Custom(),
-    );
+    $pro_builders = Swift_Rank_Pro_Schema_Helper::get_pro_schema_builders();
 
     foreach ($pro_builders as $type_value => $builder) {
         if (method_exists($builder, 'get_schema_structure')) {
@@ -99,7 +83,7 @@ function swift_rank_pro_register_subtypes($subtypes)
     require_once $types_dir . 'class-podcast-episode-schema.php';
     require_once $types_dir . 'class-event-schema.php';
     require_once $types_dir . 'class-howto-schema.php';
-    require_once $types_dir . 'class-custom-schema.php';
+    require_once $types_dir . 'class-software-application-schema.php';
     require_once $types_dir . 'class-custom-schema.php';
 
     // Register Pro schema subtypes
@@ -108,6 +92,7 @@ function swift_rank_pro_register_subtypes($subtypes)
         new Schema_Podcast_Episode(),
         new Schema_Event(),
         new Schema_Howto(),
+        new Schema_Software_Application(),
         new Schema_Custom(),
     );
 
@@ -155,6 +140,7 @@ function swift_rank_pro_reorder_types($types)
     $pro_order = array(
         'Recipe',
         'Event',
+        'SoftwareApplication',
         'HowTo',
         'PodcastEpisode',
         'Custom', // Always last
