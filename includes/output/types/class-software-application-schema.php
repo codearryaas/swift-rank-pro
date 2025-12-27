@@ -107,7 +107,7 @@ class Schema_Software_Application implements Schema_Builder_Interface
             'label' => __('Software Application', 'swift-rank-pro'),
             'description' => __('A software application.', 'swift-rank-pro'),
             'url' => 'https://schema.org/SoftwareApplication',
-            'icon' => 'smartphone', // Or 'monitor' or 'box' - smartphone implies generic app
+            'icon' => 'monitor', // Monitor icon for software applications
             'supports_language' => true,
         );
     }
