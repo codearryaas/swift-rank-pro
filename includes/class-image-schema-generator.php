@@ -44,7 +44,8 @@ class Image_Schema_Generator
     private function __construct()
     {
         // Hook into schema output to add ImageObject schemas
-        add_filter('swift_rank_schemas', array($this, 'add_image_schemas'), 10, 1);
+        // Priority 20 ensures this runs after image variable resolution (priority 10)
+        add_filter('swift_rank_schemas', array($this, 'add_image_schemas'), 20, 1);
     }
 
     /**
@@ -71,14 +72,157 @@ class Image_Schema_Generator
             return $schemas;
         }
 
+        // Get featured image URL if it exists
+        $featured_image_url = '';
+        $featured_image_id = null;
+        if (has_post_thumbnail($post->ID)) {
+            $featured_image_id = get_post_thumbnail_id($post->ID);
+            $featured_image_url = wp_get_attachment_url($featured_image_id);
+        }
+
         // Extract images from content
         $images = $this->extract_images_from_content($post->post_content);
 
-        // Generate ImageObject schemas
-        foreach ($images as $image_data) {
-            $image_schema = $this->build_image_object_schema($image_data);
+        if (empty($images)) {
+            return $schemas;
+        }
+
+        // Check if featured image is in content to avoid duplicates
+        $featured_in_content = false;
+        $featured_image_index = null;
+
+        if ($featured_image_url) {
+            foreach ($images as $index => $image_data) {
+                if (isset($image_data['url']) && $image_data['url'] === $featured_image_url) {
+                    $featured_in_content = true;
+                    $featured_image_index = $index;
+                    break;
+                }
+            }
+        }
+
+        // Generate ImageObject schemas with @id references
+        $image_ids = array();
+        $featured_image_schema_id = null;
+
+        foreach ($images as $index => $image_data) {
+            $image_schema = $this->build_image_object_schema($image_data, $index);
             if (!empty($image_schema)) {
                 $schemas[] = $image_schema;
+                // Store the @id for later reference
+                if (isset($image_schema['@id'])) {
+                    $image_ids[] = $image_schema['@id'];
+
+                    // Track featured image schema ID if this is the featured image
+                    if ($featured_in_content && $index === $featured_image_index) {
+                        $featured_image_schema_id = $image_schema['@id'];
+                    }
+                }
+            }
+        }
+
+        // If featured image is NOT in content, we need to ensure it has an ImageObject
+        // Check existing schemas for featured image ImageObject
+        if ($featured_image_url && !$featured_in_content) {
+            $has_featured_image_object = false;
+
+            // Check if there's already an ImageObject for the featured image
+            foreach ($schemas as $schema) {
+                if (isset($schema['@type']) && $schema['@type'] === 'ImageObject') {
+                    if (isset($schema['url']) && $schema['url'] === $featured_image_url) {
+                        $has_featured_image_object = true;
+                        // Use this @id for featured image reference
+                        if (isset($schema['@id'])) {
+                            $featured_image_schema_id = $schema['@id'];
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // If no ImageObject exists for featured image, it will be created by resolve_image_variable_references
+            // We just need to track its expected @id
+            if (!$has_featured_image_object) {
+                $featured_image_schema_id = $featured_image_url; // Will be set by resolve_image_variable_references
+            }
+        }
+
+        // Update Article and WebPage schemas to reference all images by @id
+        if (!empty($image_ids)) {
+            $schemas = $this->update_article_webpage_image_references($schemas, $image_ids, $featured_image_schema_id);
+        }
+
+        return $schemas;
+    }
+
+    /**
+     * Update Article and WebPage schemas to reference images by @id
+     *
+     * @param array $schemas Existing schemas.
+     * @param array $image_ids Array of image @id references from content.
+     * @param string|null $featured_image_schema_id The @id of the featured image schema (if exists).
+     * @return array Modified schemas.
+     */
+    private function update_article_webpage_image_references($schemas, $image_ids, $featured_image_schema_id = null)
+    {
+        foreach ($schemas as &$schema) {
+            // Check if this is an Article or WebPage schema
+            if (
+                isset($schema['@type']) &&
+                (strpos($schema['@type'], 'Article') !== false || $schema['@type'] === 'WebPage')
+            ) {
+
+                // If the schema has an image field, merge it with content images
+                if (isset($schema['image'])) {
+                    $all_image_refs = array();
+
+                    // First, check if there's an existing featured image from resolve_image_variable_references
+                    // If it's an ImageObject with a URL, extract the @id or create one
+                    if (is_array($schema['image']) && isset($schema['image']['@type']) && $schema['image']['@type'] === 'ImageObject') {
+                        // Featured image exists - preserve it as the first image
+                        if (isset($schema['image']['@id'])) {
+                            // Already has an @id, use it
+                            $all_image_refs[] = array(
+                                '@type' => 'ImageObject',
+                                '@id' => $schema['image']['@id'],
+                            );
+                        } elseif (isset($schema['image']['url'])) {
+                            // Has URL but no @id - use the URL as @id for now
+                            $all_image_refs[] = array(
+                                '@type' => 'ImageObject',
+                                '@id' => $schema['image']['url'],
+                            );
+                        }
+                    }
+
+                    // Then add all content images
+                    foreach ($image_ids as $image_id) {
+                        // Skip if this is the same as featured image (avoid duplicates)
+                        $is_duplicate = false;
+                        foreach ($all_image_refs as $existing_ref) {
+                            if (isset($existing_ref['@id']) && $existing_ref['@id'] === $image_id) {
+                                $is_duplicate = true;
+                                break;
+                            }
+                        }
+
+                        if (!$is_duplicate) {
+                            $all_image_refs[] = array(
+                                '@type' => 'ImageObject',
+                                '@id' => $image_id,
+                            );
+                        }
+                    }
+
+                    // Update the image field with combined references
+                    if (count($all_image_refs) === 1) {
+                        // Single image - use object directly
+                        $schema['image'] = $all_image_refs[0];
+                    } elseif (count($all_image_refs) > 1) {
+                        // Multiple images - use array
+                        $schema['image'] = $all_image_refs;
+                    }
+                }
             }
         }
 
@@ -247,6 +391,8 @@ class Image_Schema_Generator
     /**
      * Get image data from attachment ID
      *
+     * Delegates to Image_Schema_Output_Handler for centralized metadata handling.
+     *
      * @param int   $attachment_id Attachment ID.
      * @param array $attrs Optional block attributes.
      * @return array|null Image data or null.
@@ -257,39 +403,15 @@ class Image_Schema_Generator
             return null;
         }
 
-        $image_url = wp_get_attachment_url($attachment_id);
-        if (!$image_url) {
-            return null;
+        // Load Image Schema Output Handler if not already loaded
+        if (!class_exists('Image_Schema_Output_Handler')) {
+            require_once WP_CONTENT_DIR . '/plugins/swift-rank/includes/output/class-image-schema-output-handler.php';
         }
 
-        $metadata = wp_get_attachment_metadata($attachment_id);
-        $alt_text = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
-        $caption = wp_get_attachment_caption($attachment_id);
-        $attachment = get_post($attachment_id);
-
-        // Width and height
-        $width = isset($metadata['width']) ? $metadata['width'] : 0;
-        $height = isset($metadata['height']) ? $metadata['height'] : 0;
-
-        // Check for block-level width/height overrides
-        if (!empty($attrs['width'])) {
-            $width = $attrs['width'];
-        }
-        if (!empty($attrs['height'])) {
-            $height = $attrs['height'];
-        }
-
-        return array(
-            'url' => $image_url,
-            'width' => $width,
-            'height' => $height,
-            'caption' => $caption ? $caption : '',
-            'alt' => $alt_text ? $alt_text : '',
-            'name' => $attachment ? $attachment->post_title : '',
-            'description' => $attachment ? $attachment->post_content : '',
-        );
+        // Use centralized handler for metadata
+        $handler = Image_Schema_Output_Handler::get_instance();
+        return $handler->get_image_data_from_attachment($attachment_id, $attrs);
     }
-
     /**
      * Parse IMG tag to extract data
      *
@@ -342,43 +464,40 @@ class Image_Schema_Generator
      * Build ImageObject schema
      *
      * @param array $image_data Image data.
+     * @param int   $index Image index for generating unique @id.
      * @return array ImageObject schema.
      */
-    private function build_image_object_schema($image_data)
+    private function build_image_object_schema($image_data, $index = 0)
     {
         if (empty($image_data['url'])) {
             return array();
         }
 
-        $schema = array(
-            '@type' => 'ImageObject',
-            'url' => $image_data['url'],
-            'contentUrl' => $image_data['url'],
+        // Validate that the image URL is actually present in the post content
+        // This ensures we only generate schemas for images that are displayed
+        global $post;
+        if ($post && strpos($post->post_content, $image_data['url']) === false) {
+            // Image URL not found in content, skip schema generation
+            return array();
+        }
+
+        // Load Image Schema Output Handler if not already loaded
+        if (!class_exists('Image_Schema_Output_Handler')) {
+            require_once WP_CONTENT_DIR . '/plugins/swift-rank/includes/output/class-image-schema-output-handler.php';
+        }
+
+        // Use centralized handler to generate ImageObject
+        $handler = Image_Schema_Output_Handler::get_instance();
+
+        $context = array(
+            'type' => 'content',
+            'post_id' => get_the_ID(),
+            'index' => $index,
+            'image_data' => $image_data,
         );
 
-        // Add width and height if available
-        if (!empty($image_data['width'])) {
-            $schema['width'] = $image_data['width'];
-        }
-        if (!empty($image_data['height'])) {
-            $schema['height'] = $image_data['height'];
-        }
+        $schema = $handler->generate_image_object($image_data['url'], $context);
 
-        // Add caption
-        if (!empty($image_data['caption'])) {
-            $schema['caption'] = $image_data['caption'];
-        }
-
-        // Add name (title)
-        if (!empty($image_data['name'])) {
-            $schema['name'] = $image_data['name'];
-        }
-
-        // Add description
-        if (!empty($image_data['description'])) {
-            $schema['description'] = $image_data['description'];
-        }
-
-        return $schema;
+        return $schema ? $schema : array();
     }
 }
