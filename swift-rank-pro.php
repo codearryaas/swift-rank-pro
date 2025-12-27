@@ -193,6 +193,10 @@ class Swift_Rank_Pro
 		require_once SWIFT_RANK_PRO_PATH . 'includes/class-image-schema-generator.php';
 		Image_Schema_Generator::get_instance();
 
+		// Load Video Schema Generator (Pro feature)
+		require_once SWIFT_RANK_PRO_PATH . 'includes/class-video-schema-generator.php';
+		Video_Schema_Generator::get_instance();
+
 		// Load User Profile Schema (Pro feature)
 		if (is_admin()) {
 			require_once SWIFT_RANK_PRO_PATH . 'includes/class-swift-rank-pro-user-profile.php';
