@@ -475,10 +475,18 @@ class Image_Schema_Generator
 
         // Validate that the image URL is actually present in the post content
         // This ensures we only generate schemas for images that are displayed
+        // Note: WordPress uses resized versions (-1024x682.jpg), so we check for the base filename
         global $post;
-        if ($post && strpos($post->post_content, $image_data['url']) === false) {
-            // Image URL not found in content, skip schema generation
-            return array();
+        if ($post) {
+            // Extract base filename without size suffix (e.g., "image-1024x682.jpg" -> "image")
+            $url_parts = pathinfo($image_data['url']);
+            $base_name = preg_replace('/-\d+x\d+$/', '', $url_parts['filename']);
+
+            // Check if the base filename exists in content (handles both original and resized versions)
+            if (strpos($post->post_content, $base_name) === false) {
+                // Image not found in content, skip schema generation
+                return array();
+            }
         }
 
         // Load Image Schema Output Handler if not already loaded
