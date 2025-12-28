@@ -32,11 +32,17 @@ class Video_Schema_Generator
      * @var array
      */
     private $platform_patterns = array(
-        'youtube' => '/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/',
+        'youtube' => '/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/',
         'vimeo' => '/vimeo\.com\/(?:video\/)?(\d+)/',
         'wistia' => '/(?:wistia\.com|wi\.st)\/(?:medias|embed)\/([a-zA-Z0-9]+)/',
         'dailymotion' => '/dailymotion\.com\/(?:video|embed\/video)\/([a-zA-Z0-9]+)/',
         'videopress' => '/videopress\.com\/(?:v|embed)\/([a-zA-Z0-9]+)/',
+        'tiktok' => '/tiktok\.com\/@[^\/]+\/video\/(\d+)/',
+        'facebook' => '/facebook\.com\/(?:watch\/\?v=|.*\/videos\/)([0-9]+)/',
+        'instagram' => '/instagram\.com\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/',
+        'twitch' => '/twitch\.tv\/(?:videos\/)?(\d+)/',
+        'rumble' => '/rumble\.com\/(?:embed\/)?([a-zA-Z0-9]+)/',
+        'brightcove' => '/players\.brightcove\.net\/([0-9]+)\//',
         'vzaar' => '/vzaar\.com\/(?:videos\/)?(\d+)/',
         'viddler' => '/viddler\.com\/(?:v|embed)\/([a-zA-Z0-9]+)/',
         'screenr' => '/screenr\.com\/([a-zA-Z0-9]+)/',
@@ -389,7 +395,7 @@ class Video_Schema_Generator
             '@id' => get_permalink($post->ID) . '#video-' . $index,
             'name' => !empty($metadata['name']) ? $metadata['name'] : get_the_title($post->ID),
             'description' => !empty($metadata['description']) ? $metadata['description'] : get_the_excerpt($post->ID),
-            'uploadDate' => get_the_date('c', $post->ID),
+            'uploadDate' => !empty($metadata['uploadDate']) ? $metadata['uploadDate'] : get_the_date('c', $post->ID),
         );
 
         // Add thumbnail
